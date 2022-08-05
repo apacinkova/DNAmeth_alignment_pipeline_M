@@ -35,7 +35,7 @@ task bismark_index {
         mkdir -p $HOME/ref_genome
         mv "~{ref_genome}" $HOME/ref_genome/
         bismark_genome_preparation $HOME/ref_genome/
-        tar -czvf "~{ref_genome_name}".tar.gz $HOME/ref_genome/
+        tar -czvf "~{ref_genome_name}".tar.gz $PWD
 
     >>>
 
