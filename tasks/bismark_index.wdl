@@ -3,7 +3,7 @@ version 1.0
 task bismark_index {
 
     input {
-        String ref_genome
+        File ref_genome
         String ref_genome_name = "reference_genome"
         String? docker_im
         Int? disk_sp
