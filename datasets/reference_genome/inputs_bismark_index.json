@@ -1,0 +1,6 @@
+{
+  "bismark_index.ref_genome": "dx://project-GFBQvF80pfpKzXz1FyzF8Zyj:file-BFBv6J80634gkvZ6z100VGpp",
+  "bismark_index.ref_genome_name": "genome_index_bismark_bt2GRCh38.no_alt_analysis_set",
+  "bismark_index.disk_sp": 20,
+  "bismark_index.actual_mem": 32
+}
