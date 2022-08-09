@@ -21,7 +21,7 @@ task bismark {
             patterns: ["*.fastq", "*.fastq.gz", "*.fq", "*.fq.gz"]
         }
         sample_name:{
-            help: "Sample name."
+            help: "Sample name - needs to be the whole file name without suffix."
         }
         reads_2:{
             help: "Fastq reads 2 in fastq file.",
@@ -55,17 +55,10 @@ task bismark {
         description: "Map bisulfite treated sequencing reads to a genome of interest and perform methylation calls in a single step."
     }
 
+    Int disk_space = if defined(ref_genome_index_tar) then select_first([disk_sp, ceil(2 * (size(reads_1, "G") + size(reads_2, "G")) + size(ref_genome_index_tar, "G"))]) else select_first([disk_sp, ceil(2 * ((size(reads_1, "G") + (size(reads_2, "G"))))) + 16])
     Int multi_core = select_first([cores, 10])
     Int mem = multi_core * 24
-
-    if(defined(ref_genome_index_tar)){
-        Int disk_space = select_first([disk_sp, ceil(2 * (size(reads_1, "G") + size(reads_2, "G")) + size(ref_genome_index_tar, "G"))])
-    }
-
-    if(defined(ref_genome)){
-        String ref_genome_name = basename(basename(basename(ref_genome, ".gz"), ".fasta"), ".fa")
-        Int disk_space = select_first([disk_sp, ceil(2 * ((size(reads_1, "G") + (size(reads_2, "G"))))) + 16])
-    }
+    String ref_genome_name = if defined(ref_genome) then basename(basename(basename(ref_genome, ".gz"), ".fasta"), ".fa") else "reference_genome"
     
     command <<<
         set -e +x -o pipefail
@@ -81,22 +74,25 @@ task bismark {
             mv $HOME/ref_genome_tar/"~{ref_genome_name}".tar.gz .
         else
             # Untar index to $HOME/ref_genome
-            tar -xf ~{ref_genome_index_tar} -C $HOME/ref_genome/ --strip-components 1
+            tar -xf ~{ref_genome_index_tar} -C $HOME/ref_genome/ --strip-components 2
         fi
 
         # 2) Bismark read alignment and methylation calling
+        ## Specifying --basename in conjuction with --multicore is currently not supported (but we are aiming to fix this soon).
         if [[ -n "~{reads_2}" ]]; then
             bismark --genome $HOME/ref_genome/ \
-            --basename "~{sample_name}" \
+            #--basename "~{sample_name}" \
             --gzip \
+            ~{bismark_optional_args} \
             --parallel $(nproc) \
             -1 ~{reads_1} \
             -2 ~{reads_2}  > "~{sample_name}".bismark.out
             mv "~{sample_name}"_PE_report.txt "~{sample_name}"_bismark_alignment_report.txt
         else
             bismark --genome $HOME/ref_genome/ \
-            --basename "~{sample_name}" \
+            #--basename "~{sample_name}" \
             --gzip \
+            ~{bismark_optional_args} \
             --parallel $(nproc) \
             ~{reads_1}  > "~{sample_name}".bismark.out
              mv "~{sample_name}"_bismark_SE_report.txt "~{sample_name}"_bismark_alignment_report.txt
