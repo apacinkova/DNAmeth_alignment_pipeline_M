@@ -4,8 +4,13 @@ task trimGalore {
 
     input {
         File reads_1
-        String sample_name
+        String? filename_1
+        String library_type
+        Boolean wgbs = true
         File? reads_2
+        String? filename_2
+        String? optional_args
+
         String? docker_im
         Int? disk_sp
         Int? cores
@@ -17,17 +22,34 @@ task trimGalore {
         ceil(2 * ((size(reads_1, "G") + (size(reads_2, "G")))))
     ])
 
+    String filename = select_first([filename_1,basename(basename(basename(basename(reads_1, ".fastq.gz"), ".fastq"), ".fq"), ".fq.gz")])
+
     parameter_meta {
         reads_1:{
             help: "Fastq reads 1 in fastq file.",
             patterns: ["*.fastq", "*.fastq.gz", "*.fq", "*.fq.gz"]
         }
+        filename_1:{
+            help: "Reads 1 file name - needs to be the whole file name without suffix."
+        }
+        library_type:{
+            help: "The library type (directional; non_directional)."
+        }
+        wgbs:{
+            help: "Sequencing strategy: whole genome shotgun BS-Seq (WGBS). Note for RRBS using MseI: DNA material digested with MseI (recognition motif: TTAA), use wgbs=true."
+        }
         reads_2:{
             help: "Fastq reads 2 in fastq file.",
             patterns: ["*.fastq", "*.fastq.gz", "*.fq", "*.fq.gz"]
         }
+        filename_2:{
+            help: "Reads 2 file name - needs to be the whole file name without suffix."
+        }
+        optional_args:{
+            help: "Additional bismark options (see https://github.com/FelixKrueger/Bismark/tree/master/Docs Appendix section): If no additional options are specified Bismark will use a set of default values."
+        }
         docker_im: {
-            help: "Docker image containing runtime environment."
+            help: "Docker image tarball containing execution environment. Please pass as a string in format dx://project-xxx:file-yyy."
         }
         disk_sp: {
             help: "Required disk space (in GB) to run the app."
@@ -41,12 +63,25 @@ task trimGalore {
     }
 
     meta {
-        title: "TrimGalore!"
-        description: "Taking appropriate QC measures for RRBS-type or other -Seq applications with Trim Galore!"
+        title: "TrimGalore"
+        description: "Taking appropriate QC measures for RRBS-type or other -Seq applications with Trim Galore"
     }
 
     command <<<
         set -e +x -o pipefail
+
+        # generate key TrimGalore! arguments
+        if [ ~{wgbs} != true ];then
+            if [ "~{library_type}" = "non_directional" ];then 
+                ARGS='--non_directional --rrbs'
+            else 
+                ARGS='--rrbs'
+            fi
+        fi
+
+        if [[ -n "~{optional_args}" ]];then
+            ARGS+=" ~{optional_args}"
+        fi
 
         # create directory for outputs
         mkdir $HOME/fastQC_reports
@@ -55,37 +90,37 @@ task trimGalore {
         # Run TrimGalore! using either paired-end or single-end mode
         if [[ -n "~{reads_2}" ]]; then
             trim_galore \
-            --basename "~{sample_name}" \
             --phred33 \
             --fastqc \
-            --fastqc_args "--extract --outdir $HOME/fastQC_reports/" \
+            --fastqc_args "--outdir $HOME/fastQC_reports/" \
             --paired \
             --cores $(nproc) \
             --output_dir $HOME/trimmed_data/ \
             --gzip \
-            "~{reads_1}" \
-            "~{reads_2}"
+            $ARGS \
+            ~{reads_1} \
+            ~{reads_2}
 
-            mv $HOME/trimmed_data/"~{sample_name}"_val_1.fq.gz "~{sample_name}"_val_1.fq.gz
-            mv $HOME/trimmed_data/"~{sample_name}"_val_2.fq.gz "~{sample_name}"_val_2.fq.gz
+            mv $HOME/trimmed_data/~{filename}_val_1.fq.gz ~{filename}_trimmed.fq.gz
+            mv $HOME/trimmed_data/~{filename_2}_val_2.fq.gz ~{filename_2}_trimmed.fq.gz
+            mv $HOME/fastQC_reports/~{filename}_val_1_fastqc.html ~{filename}_trimmed_fastqc_report.html
+            mv $HOME/fastQC_reports/~{filename_2}_val_2_fastqc.html ~{filename_2}_trimmed_fastqc_report.html
 
         else
             trim_galore \
-            --basename "~{sample_name}" \
             --phred33 \
             --fastqc \
-            --fastqc_args "--extract --outdir $HOME/fastQC_reports/" \
+            --fastqc_args "--outdir $HOME/fastQC_reports/" \
             --cores $(nproc) \
             --output_dir $HOME/trimmed_data/ \
             --gzip \
-            "~{reads_1}"
+            $ARGS \
+            ~{reads_1}
 
-            mv $HOME/trimmed_data/"~{sample_name}"_trimmed.fq.gz "~{sample_name}"_trimmed.fq.gz
-
+            mv $HOME/trimmed_data/~{filename}_trimmed.fq.gz ~{filename}_trimmed.fq.gz
+            mv $HOME/fastQC_reports/~{filename}_trimmed_fastqc.html ~{filename}_trimmed_fastqc_report.html
+            
         fi
-
-        mv $HOME/fastQC_reports/*/fastqc_report.html fastqc_report_after_trim.html
-        mv $HOME/trimmed_data/*_trimming_report.txt trimming_report.txt
 
     >>>
 
@@ -97,10 +132,10 @@ task trimGalore {
     }
 
     output {
-        File? trimmed_reads_1 = "${sample_name}_val_1.fq.gz"
-        File? trimmed_reads_2 = "${sample_name}_val_2.fq.gz"
-        File? trimmed_reads = "${sample_name}_trimmed.fq.gz"
-        File trimming_report = "trimming_report.txt"
-        File fastqc_post_res = "fastqc_report_after_trim.html"
+        File trimmed_reads_1 = "${filename}_trimmed.fq.gz"
+        File? trimmed_reads_2 = "${filename_2}_trimmed.fq.gz"
+        Array[File] trimming_report = glob("*_trimming_report.txt")
+        File fastqc_post_res_1 = "${filename}_trimmed_fastqc_report.html"
+        File? fastqc_post_res_2 = "${filename_2}_trimmed_fastqc_report.html"
     }
 }

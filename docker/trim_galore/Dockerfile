@@ -1,40 +1,51 @@
-# TrimGalore! v0.6.6
+# TrimGalore!
 # https://github.com/FelixKrueger/TrimGalore
 
 # base image: Ubuntu
-FROM ubuntu:20.04
+FROM ubuntu:20.04 AS build-base
 
-# cutadapt version
-ARG cutadapt_version=4.1
-ARG DEBIAN_FRONTEND=noninteractive
+# software versions
+ENV trimgalore_version=0.6.6
+ENV DEBIAN_FRONTEND=noninteractive
+
+
+FROM build-base AS build-fastqc
 
 WORKDIR /
 RUN apt-get update --fix-missing \
-    && apt-get -y install --no-install-recommends --no-install-suggests \
-        curl perl default-jre python3 unzip build-essential libnss-sss\
-        less zlib1g-dev libdeflate-dev libisal-dev\
-    && yes '' | apt-get install python3-pip \
-    && apt-get install pigz
+    && apt-get -y install unzip libncurses5-dev
 
 # install fastqc
 ADD http://www.bioinformatics.babraham.ac.uk/projects/fastqc/fastqc_v0.11.9.zip /tmp/fastqc.zip
 RUN unzip /tmp/fastqc.zip -d /opt/ && \
     rm /tmp/fastqc.zip && \
     chmod u+x /opt/FastQC/fastqc
-ENV PATH="/opt/FastQC/:${PATH}"
 
-# install cutadapt
-RUN python3 -m pip install --user --upgrade cutadapt==${cutadapt_version} \
-    && cp /root/.local/bin/cutadapt /usr/local/bin
+
+FROM build-base AS build-cutadapt
+
+WORKDIR /
+RUN apt-get update --fix-missing \
+    && apt-get -y install python3 python3-pip
+
+
+FROM build-base AS build-trimgalore
 
 # install trim galore
-ADD https://github.com/FelixKrueger/TrimGalore/archive/0.6.6.tar.gz ./0.6.6.tar.gz
-RUN tar -xzvf 0.6.6.tar.gz \
-    && rm -rf 0.6.6.tar.gz \
-    && mv TrimGalore-0.6.6/trim_galore /usr/local/bin
+ADD https://github.com/FelixKrueger/TrimGalore/archive/${trimgalore_version}.tar.gz ./${trimgalore_version}.tar.gz
+RUN tar -xzvf ${trimgalore_version}.tar.gz \
+    && rm -rf ${trimgalore_version}.tar.gz \
+    && mv TrimGalore-${trimgalore_version}/trim_galore trim_galore
 
-RUN apt-get remove -y unzip \
-    && apt-get autoremove -y \
-    && apt-get clean
 
-WORKDIR $HOME
+FROM ubuntu:20.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV cutadapt_version=2.8-2build1
+
+RUN apt-get update && apt-get install -y \
+    cutadapt=${cutadapt_version} \
+    python3 perl default-jre 
+
+COPY --from=build-fastqc /opt/FastQC/fastqc /usr/local/bin/
+COPY --from=build-trimgalore /trim_galore /usr/local/bin/
