@@ -145,7 +145,7 @@ task bismark {
     >>>
 
     runtime {
-        docker: select_first([docker_im, "dx://project-GFBQvF80pfpKzXz1FyzF8Zyj:file-GFz2jQj0pfp790v14pqPq4X6"])
+        docker: select_first([docker_im, "dx://project-GFBQvF80pfpKzXz1FyzF8Zyj:file-GG1fXFj0pfp5BxPb4bJQK6qy"])
         cpu: multi_core
         memory: mem + "GB"
         disks: "local-disk ${disk_space} SSD"
