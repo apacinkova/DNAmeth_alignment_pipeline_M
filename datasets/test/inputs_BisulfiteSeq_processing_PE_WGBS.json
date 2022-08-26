@@ -1,0 +1,9 @@
+{
+  "BisulfiteSeqData_processing.reads_1": "dx://project-GFBQvF80pfpKzXz1FyzF8Zyj:file-GFb28p00pfp9VX448gG8GQx4",
+  "BisulfiteSeqData_processing.reads_2": "dx://project-GFBQvF80pfpKzXz1FyzF8Zyj:file-GFb2Kgj0pfp2gjXv0yQ5vqxB",
+  "BisulfiteSeqData_processing.ref_genome": "dx://project-GFBQvF80pfpKzXz1FyzF8Zyj:file-BFBv6J80634gkvZ6z100VGpp",
+  "BisulfiteSeqData_processing.ref_genome_index_tar": "dx://project-GFBQvF80pfpKzXz1FyzF8Zyj:file-GFpXFG80F8qb74v92VXXj3gq",
+  "BisulfiteSeqData_processing.wgbs": true,
+  "BisulfiteSeqData_processing.num_reads_align": 50000,
+  "BisulfiteSeqData_processing.lib_type": "unknown"
+}

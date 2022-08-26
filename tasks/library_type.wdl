@@ -45,7 +45,7 @@ task library_type {
     }
 
     Int disk_space = select_first([disk_sp, ceil(4 * size(reads_1, "G") + 5 * size(ref_genome_index_tar, "G") + size(ref_genome, "G"))])
-    Int multi_core = if cores < 2 then 2 else select_first([cores, 2])
+    Int multi_core = if select_first([cores, 2]) < 2 then 2 else select_first([cores, 2])
     Int mem = multi_core * 24
 
     command <<<

@@ -1,0 +1,29 @@
+{
+  "stage-common.reads_1": {
+    "$dnanexus_link": {
+      "id": "file-GFb28YQ0pfp0Jzf22Zq2bx6Z",
+      "project": "project-GFBQvF80pfpKzXz1FyzF8Zyj"
+    }
+  },
+  "stage-common.reads_2": {
+    "$dnanexus_link": {
+      "id": "file-GFb2Kp00pfpGKVxq1zZYpJFP",
+      "project": "project-GFBQvF80pfpKzXz1FyzF8Zyj"
+    }
+  },
+  "stage-common.wgbs": true,
+  "stage-common.num_reads_align": 50000,
+  "stage-common.ref_genome_index_tar": {
+    "$dnanexus_link": {
+      "id": "file-GFpXFG80F8qb74v92VXXj3gq",
+      "project": "project-GFBQvF80pfpKzXz1FyzF8Zyj"
+    }
+  },
+  "stage-common.ref_genome": {
+    "$dnanexus_link": {
+      "id": "file-BFBv6J80634gkvZ6z100VGpp",
+      "project": "project-GFBQvF80pfpKzXz1FyzF8Zyj"
+    }
+  },
+  "stage-common.lib_type": "unknown"
+}
