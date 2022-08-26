@@ -127,7 +127,6 @@ task bismark {
         # 3) Remove alignments to the same position in the genome which can arise by e.g. PCR amplification (WGBS or PBAT)
         if [ ~{wgbs} = true ] || [[ $ARGS = *"pbat"* ]];then
             deduplicate_bismark --bam $INPUT_BAM
-            mv "~{sample_name}".deduplicated.bam "~{sample_name}".deduplicated.bam
             INPUT_BAM="~{sample_name}".deduplicated.bam
         fi
 
