@@ -68,7 +68,7 @@ task fastqc {
     >>>
 
    runtime {
-        docker: select_first([docker_im, "dx://project-GFBQvF80pfpKzXz1FyzF8Zyj:file-GG1j3x80pfp2QxJy4q7q2PQ5"])
+        docker: select_first([docker_im, "dx://project-GFBQvF80pfpKzXz1FyzF8Zyj:file-GG499g00pfpB3Ybb80X2G5Yg"])
         cpu: 1
         memory: select_first([actual_mem, 8]) + "GB"
         disks: "local-disk ${disk_spc} SSD"

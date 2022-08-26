@@ -125,7 +125,7 @@ task trimGalore {
     >>>
 
     runtime {
-        docker: select_first([docker_im, "dx://project-GFBQvF80pfpKzXz1FyzF8Zyj:file-GG1j3x80pfp2QxJy4q7q2PQ5"])
+        docker: select_first([docker_im, "dx://project-GFBQvF80pfpKzXz1FyzF8Zyj:file-GG499g00pfpB3Ybb80X2G5Yg"])
         cpu: select_first([cores,if defined(reads_2) then 14 else 8])
         memory: select_first([actual_mem,if defined(reads_2) then 56 else 32]) + "GB"
         disks: "local-disk ${disk_space} SSD"

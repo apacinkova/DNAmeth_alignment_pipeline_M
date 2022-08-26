@@ -5,6 +5,7 @@
 FROM ubuntu:20.04 AS build-base
 
 # software versions
+ENV fastqc_version=0.11.9
 ENV trimgalore_version=0.6.6
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -16,11 +17,10 @@ RUN apt-get update --fix-missing \
     && apt-get -y install unzip libncurses5-dev
 
 # install fastqc
-ADD http://www.bioinformatics.babraham.ac.uk/projects/fastqc/fastqc_v0.11.9.zip /tmp/fastqc.zip
-RUN unzip /tmp/fastqc.zip -d /opt/ && \
-    rm /tmp/fastqc.zip && \
-    chmod u+x /opt/FastQC/fastqc
-
+ADD http://www.bioinformatics.babraham.ac.uk/projects/fastqc/fastqc_v${fastqc_version}.zip /
+RUN unzip fastqc_v${fastqc_version}.zip && \
+    rm fastqc_v${fastqc_version}.zip && \
+    chmod u+x FastQC/fastqc
 
 FROM build-base AS build-cutadapt
 
@@ -47,5 +47,5 @@ RUN apt-get update && apt-get install -y \
     cutadapt=${cutadapt_version} \
     python3 perl default-jre 
 
-COPY --from=build-fastqc /opt/FastQC/fastqc /usr/local/bin/
+COPY --from=build-fastqc /FastQC/ /usr/local/bin/
 COPY --from=build-trimgalore /trim_galore /usr/local/bin/
