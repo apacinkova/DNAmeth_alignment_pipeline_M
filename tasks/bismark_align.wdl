@@ -55,7 +55,7 @@ task bismark_align {
 
     String sample_name = basename(basename(basename(basename(reads_1, ".fastq.gz"), ".fastq"), ".fq"), ".fq.gz")
 
-    Int disk_space = select_first([disk_sp, 5 * ceil(size(reads_1, "G") + size(reads_2, "G")) + 3 * ceil(size(ref_genome_index_tar, "G"))])
+    Int disk_space = select_first([disk_sp, 6 * ceil(size(reads_1, "G") + size(reads_2, "G")) + 3 * ceil(size(ref_genome_index_tar, "G"))])
     Int multi_core = select_first([cores, 16])
     Int mem = if (multi_core * 4) < 108 then 108 else (multi_core * 4)
     
