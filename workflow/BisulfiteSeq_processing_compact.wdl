@@ -4,8 +4,7 @@ import "fastqc.wdl" as fastqc
 import "bismark_index.wdl" as bismark_index
 import "library_type.wdl" as library_type
 import "trim_galore.wdl" as trimGalore
-import "bismark_align.wdl" as bismark_align
-import "bismark_meth_call.wdl" as bismark_meth_call
+import "bismark.wdl" as bismark
 
 workflow BisulfiteSeq_processing {
     input {
@@ -50,7 +49,7 @@ workflow BisulfiteSeq_processing {
         num_reads_align:{
             help: "Number of reads aligned to the reference genome to detect library type."
         }
-        QC_pre_trim:{
+        QC_pre_trim{
             help: "Perform quality control before trimming?"
         }
         trim_galore_optional_args:{
@@ -136,24 +135,16 @@ workflow BisulfiteSeq_processing {
     }
 
     # Bismark alignment
-    call bismark_align.bismark_align as bismark_align {   
+    call bismark.bismark as bismark {   
         input:
             reads_1 = trim_galore.trimmed_reads_1,
             reads_2 = reads_2_trimmed,
             ref_genome = ref_genome,
             ref_genome_index_tar = rg_indx_tar,
+            wgbs = wgbs,
             bismark_opt_args = bismark_optional_args,
             library_type = lib_typ,
             docker_im = bismark_docker_image
-    }
-
-    # Bismark deduplication and methylation calling
-    call bismark_meth_call.bismark_meth_call as bismark_meth_call {   
-        input:
-            mapped_reads_bam = bismark_align.mapped_reads,
-            wgbs = wgbs,
-            bismark_alignment_report = bismark_align.bismark_alignment_report
-            bismark_opt_args = bismark_optional_args
     }
 
     output {
@@ -171,11 +162,11 @@ workflow BisulfiteSeq_processing {
         File fastQC_post_trim_1 = trim_galore.fastqc_post_res_1
         File? fastQC_post_trim_2 = trim_galore.fastqc_post_res_2
 
-        File bismark_align_report = bismark_align.bismark_alignment_report
-        File bismark_aligned_reads = bismark_align.mapped_reads
-        File? bismark_aligned_reads_deduplicated = bismark_meth_call.mapped_reads_deduplicated
-        File? bismark_deduplication_report = bismark_meth_call.bismark_deduplication_report
-        File bismark_methylation_extractor = bismark_meth_call.methylation_extractor
-        #File bismark_summary_report = bismark_meth_call.bismark_summary_report
+        File bismark_align_report = bismark.bismark_alignment_report
+        File bismark_aligned_reads = bismark.mapped_reads
+        File? bismark_aligned_reads_deduplicated = bismark.mapped_reads_deduplicated
+        File? bismark_deduplication_report = bismark.bismark_deduplication_report
+        File bismark_methylation_extractor = bismark.methylation_extractor
+        File bismark_summary_report = bismark.bismark_summary_report
     }
 }

@@ -68,37 +68,36 @@ task library_type {
         --parallel ~{multi_core} \
         random_reads.fastq > bismark_alignment_report.txt
 
+        # extract last rows with statistics to  get information from all cores
+        LINE=$(grep -n "Number of sequences with unique best (first) alignment" bismark_alignment_report.txt | cut -f1 -d: | tail -1)        
+
         # number of reads aligned to the original strands
-        OT="$(grep '((converted) top strand)' bismark_alignment_report.txt | grep -o -E '[0-9]+' | awk -F "," 'NR!=1{Total=Total+$1} END{print Total}')"
-        OB="$(grep '((converted) bottom strand)' bismark_alignment_report.txt | grep -o -E '[0-9]+' | awk -F "," 'NR!=1{Total=Total+$1} END{print Total}')"
+        OT="$(tail -n +$LINE bismark_alignment_report.txt | grep '((converted) top strand)' | grep -o -E '[0-9]+')"
+        OB="$(tail -n +$LINE bismark_alignment_report.txt | grep '((converted) bottom strand)' | grep -o -E '[0-9]+')"
         SUM_ORIGINAL=$(($OT + $OB))
 
         # number of reads aligned to the complementary strands
-        CTOT="$(grep '(complementary to (converted) top strand)' bismark_alignment_report.txt | grep -o -E '[0-9]+' | awk -F "," 'NR!=1{Total=Total+$1} END{print Total}')"
-        CTOB="$(grep '(complementary to (converted) bottom strand)' bismark_alignment_report.txt | grep -o -E '[0-9]+' | awk -F "," 'NR!=1{Total=Total+$1} END{print Total}')"
+        CTOT="$(tail -n +$LINE bismark_alignment_report.txt | grep '(complementary to (converted) top strand)' | grep -o -E '[0-9]+')"
+        CTOB="$(tail -n +$LINE bismark_alignment_report.txt | grep '(complementary to (converted) bottom strand)' | grep -o -E '[0-9]+')"
         SUM_COMPLEMENTARY=$(($CTOT + $CTOB))
 
-       # if the proportion of reads aligned to the complementary strands > than 25% -> non_directional library
-        if python -c "print( round($SUM_COMPLEMENTARY / float($SUM_COMPLEMENTARY + $SUM_ORIGINAL),3) < 0.25)"
-            then
-                echo 'directional' > library_type
-            else
-                echo 'non_directional' > library_type
-        fi
+        # compare the proportion of reads mapped to complementary strands with threshold: (if < 0.25 library is directional)
+        RESULT=$(awk "BEGIN {print $SUM_COMPLEMENTARY/($SUM_COMPLEMENTARY+$SUM_ORIGINAL)}")
+        awk -v RESULT='$RESULT' -v THRESHOLD=0.25 'BEGIN { print (RESULT < THRESHOLD) ? "directional" : "non_directional" }' > library_type_detected.txt
 
         mv bismark_alignment_report.txt bismark_alignment_report_library_type_detect.txt
 
     >>>
 
     runtime {
-        docker: select_first([docker_im, "dx://project-GFBQvF80pfpKzXz1FyzF8Zyj:file-GG4GPQQ0pfpBf22y8gzP9Z9k"])
+        docker: select_first([docker_im, "dx://project-GFBQvF80pfpKzXz1FyzF8Zyj:file-GG6B1280pfp6ZxfkJVKKzgF9"])
         cpu: multi_core
         memory: mem + "GB"
         disks: "local-disk ${disk_space} SSD"
     }
 
     output {
-        String library_type = read_string("library_type")
+        String library_type = read_string("library_type_detected.txt")
         File bismark_alignment_report = "bismark_alignment_report_library_type_detect.txt"
     }
 }

@@ -1,12 +1,11 @@
 version 1.0
 
-task bismark {
+task bismark_align {
 
     input {
         File reads_1
         File ref_genome
         File ref_genome_index_tar
-        Boolean wgbs = true
         String library_type
         File? reads_2
         String? bismark_opt_args
@@ -31,9 +30,6 @@ task bismark {
         }
         ref_genome_index_tar:{
             help: "Reference genome index (tarball)."
-        }
-        wgbs:{
-            help: "Sequencing strategy: whole genome shotgun BS-Seq (WGBS)."
         }
         bismark_opt_args:{
             help: "Additional bismark options (see https://github.com/FelixKrueger/Bismark/tree/master/Docs Appendix section): If no additional options are specified Bismark will use a set of default values."
@@ -109,7 +105,6 @@ task bismark {
 
             BAM_ALIGNED="~{sample_name}"_bismark_bt2_pe.bam
             ALIGNMENT_REPORT="~{sample_name}"_bismark_bt2_PE_report.txt
-            EXTRACTOR_ARGS=--paired-end
         else    
             bismark --genome $HOME/ref_genome/ \
             --gzip \
@@ -119,29 +114,7 @@ task bismark {
 
             BAM_ALIGNED="~{sample_name}"_bismark_bt2.bam
             ALIGNMENT_REPORT="~{sample_name}"_bismark_bt2_SE_report.txt
-            EXTRACTOR_ARGS=--single-end
         fi
-
-        INPUT_BAM_ME=$BAM_ALIGNED
-
-        # 3) Remove alignments to the same position in the genome which can arise by e.g. PCR amplification (WGBS or PBAT)
-        if [ "~{wgbs}" = "true" ] || [[ $ARGS = *"pbat"* ]];then
-            deduplicate_bismark --bam $BAM_ALIGNED
-            mv $(ls *deduplicated.bam) "~{sample_name}".deduplicated.bam
-            mv $(ls *deduplication_report.txt) "~{sample_name}.deduplication_report.txt"
-            INPUT_BAM_ME="~{sample_name}".deduplicated.bam
-        fi
-
-        # 4) Bismark methylation extractor
-        mkdir meth_extractor
-        bismark_methylation_extractor $EXTRACTOR_ARGS --output meth_extractor --gzip --bedGraph $INPUT_BAM_ME
-        tar -czvf meth_extractor_res.tar.gz meth_extractor        
-
-        # 5) Generate a graphical HTML overall summary
-        # choose the .bam file that is NOT deduplicated
-        INPUT_BAM_NOTDUP=$(find . -type f -name "*.bam" | grep -vw "deduplicated" | awk '{print substr( $0, 3 )}')
-        cp meth_extractor/* ./
-        bismark2summary $INPUT_BAM_NOTDUP
 
         mv $BAM_ALIGNED "~{sample_name}".bam
         mv $ALIGNMENT_REPORT "~{sample_name}"_bismark_alignment_report.txt
@@ -159,9 +132,5 @@ task bismark {
     output {
         File bismark_alignment_report = "${sample_name}_bismark_alignment_report.txt"
         File mapped_reads = "${sample_name}.bam"
-        File? mapped_reads_deduplicated = "${sample_name}.deduplicated.bam"
-        File? bismark_deduplication_report = "${sample_name}.deduplication_report.txt"
-        File methylation_extractor = "meth_extractor_res.tar.gz"
-        File bismark_summary_report = "bismark_summary_report.html"
     }
 }

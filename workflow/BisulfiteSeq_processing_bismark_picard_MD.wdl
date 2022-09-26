@@ -5,9 +5,10 @@ import "bismark_index.wdl" as bismark_index
 import "library_type.wdl" as library_type
 import "trim_galore.wdl" as trimGalore
 import "bismark_align.wdl" as bismark_align
-import "bismark_meth_call.wdl" as bismark_meth_call
+import "picard_mark_duplicates.wdl" as mark_duplicates
+import "methyl_dackel.wdl" as methyl_dackel
 
-workflow BisulfiteSeq_processing {
+workflow BisulfiteSeq_processing_bismark_picard_MD {
     input {
         File reads_1
         String lib_type = "unknown"
@@ -19,10 +20,13 @@ workflow BisulfiteSeq_processing {
         Boolean QC_pre_trim = true
         String? trim_galore_optional_args
         String? bismark_optional_args
+        Boolean patterned_flowcell = true
+        String? methyl_dackel_optional_args
 
         String? fastqc_docker_image
         String? trim_galore_docker_image
         String? bismark_docker_image
+        String? bwameth_docker_image
     }
 
     parameter_meta {
@@ -59,6 +63,12 @@ workflow BisulfiteSeq_processing {
         bismark_optional_args:{
             help: "Additional Bismark options (see https://github.com/FelixKrueger/Bismark/tree/master/Docs Appendix section): If no additional options are specified Bismark will use a set of default values."
         }
+        patterned_flowcell:{
+            help: "A) Patterned flow cells have clusters with defined sizes, defined shapes, and ordered spacing. B) Nonpatterned flow cells have clusters with varied sizes, undefined shapes, and irregular spacing."
+        }
+        methyl_dackel_optional_args:{
+            help: "Additional MethylDackel options (see https://github.com/dpryan79/methyldackel)"
+        }
         fastqc_docker_image:{
             help: "Docker image containing runtime environment for FastQC."
         }
@@ -67,6 +77,9 @@ workflow BisulfiteSeq_processing {
         }
         bismark_docker_image:{
             help: "Docker image containing runtime environment for Bismark."
+        }
+        bwameth_docker_image:{
+            help: "Docker image containing runtime environment for BWA-meth."
         }
     }
 
@@ -147,13 +160,27 @@ workflow BisulfiteSeq_processing {
             docker_im = bismark_docker_image
     }
 
-    # Bismark deduplication and methylation calling
-    call bismark_meth_call.bismark_meth_call as bismark_meth_call {   
+    if(wgbs)
+    {
+        # Picard MarkDuplicates
+        call mark_duplicates.picard_mark_duplicates as mark_duplicates {   
+            input:
+                mapped_reads_sorted_bam = bismark_align.mapped_reads,
+                patterned_flowcell_model = patterned_flowcell,
+                docker_im = bwameth_docker_image
+        }
+    }
+    File aligned_sorted_reads = select_first([mark_duplicates.dedup_aligned_reads_sorted_bam,bismark_align.mapped_reads])
+    File aligned_sorted_reads_index = select_first([mark_duplicates.dedup_aligned_reads_sorted_bam_index,bismark_align.mapped_reads_bam_index])
+        
+    # MethylDackel extract methylation metrics
+    call methyl_dackel.MethylDackel as methyl_dackel {   
         input:
-            mapped_reads_bam = bismark_align.mapped_reads,
-            wgbs = wgbs,
-            bismark_alignment_report = bismark_align.bismark_alignment_report
-            bismark_opt_args = bismark_optional_args
+            mapped_reads_sorted_bam = aligned_sorted_reads,
+            mapped_reads_sorted_bai = aligned_sorted_reads_index,
+            ref_genome = ref_genome,
+            methyl_dackel_opt_args = methyl_dackel_optional_args,
+            docker_im = bwameth_docker_image
     }
 
     output {
@@ -173,9 +200,12 @@ workflow BisulfiteSeq_processing {
 
         File bismark_align_report = bismark_align.bismark_alignment_report
         File bismark_aligned_reads = bismark_align.mapped_reads
-        File? bismark_aligned_reads_deduplicated = bismark_meth_call.mapped_reads_deduplicated
-        File? bismark_deduplication_report = bismark_meth_call.bismark_deduplication_report
-        File bismark_methylation_extractor = bismark_meth_call.methylation_extractor
-        #File bismark_summary_report = bismark_meth_call.bismark_summary_report
+
+        File? bwa_meth_dedup_aligned_reads_sorted_bam = mark_duplicates.dedup_aligned_reads_sorted_bam
+        File? bwa_meth_dedup_aligned_reads_sorted_bai = mark_duplicates.dedup_aligned_reads_sorted_bam_index
+        File? MarkDuplicates_deduplicate_metrics = mark_duplicates.deduplicate_metrics
+        File? MarkDuplicates_deduplication_report = mark_duplicates.bwa_meth_alignment_report_dedup
+
+        File methylation_bedgraph = methyl_dackel.out_bedgraph
     }
 }

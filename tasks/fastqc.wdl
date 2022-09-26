@@ -43,8 +43,10 @@ task fastqc {
     ]) 
 
     String filename = select_first([filename_1,basename(basename(basename(basename(reads_1, ".fastq.gz"), ".fastq"), ".fq"), ".fq.gz")])
-    
+    String filename2 = select_first([filename_2,if defined(reads_2) then basename(basename(basename(basename(reads_2, ".fastq.gz"), ".fastq"), ".fq"), ".fq.gz") else "empty"])
+
     command <<<
+
         set -e +x -o pipefail
         mkdir $HOME/fastQC_reports
 
@@ -55,7 +57,7 @@ task fastqc {
             ~{reads_2} \
             --outdir $HOME/fastQC_reports
 
-            mv $HOME/fastQC_reports/~{filename_2}_fastqc.html ~{filename_2}_fastqc_report.html
+            mv $HOME/fastQC_reports/~{filename2}_fastqc.html ~{filename2}_fastqc_report.html
             
         else
             fastqc \
@@ -76,6 +78,6 @@ task fastqc {
 
    output {
         File fastqc_res_1 = "${filename}_fastqc_report.html"
-        File? fastqc_res_2 = "${filename_2}_fastqc_report.html"
+        File? fastqc_res_2 = "${filename2}_fastqc_report.html"
     }
 }

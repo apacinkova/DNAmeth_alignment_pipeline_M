@@ -70,13 +70,13 @@ RUN tar -xzvf ${bismark_version}.tar.gz \
 FROM ubuntu:20.04
 RUN apt-get update && apt-get install -y \
     zlib1g-dev \
+    libcurl4-gnutls-dev \
     libncurses5-dev \
     libbz2-dev \
     liblzma-dev \    
-    perl \
-    pip \
-    && pip install plotly==5.10.0
+    python3
 COPY --from=build-seqtk /seqtk/* /usr/local/bin/
 COPY --from=build-samtools /samtools/bin/* /usr/local/bin/
 COPY --from=build-bowtie /bowtie2/bowtie2 /bowtie2/bowtie2-* /usr/local/bin/
-COPY --from=build-bismark /Bismark/*bismark* /Bismark/coverage2cytosine /Bismark/bam2nuc /Bismark/filter_non_conversion /Bismark/methylation_consistency /usr/local/bin/
+COPY --from=build-bismark /Bismark/ /usr/local/bin/
+#COPY --from=build-bismark /Bismark/*bismark* /Bismark/coverage2cytosine /Bismark/bam2nuc /Bismark/filter_non_conversion /Bismark/methylation_consistency /usr/local/bin/

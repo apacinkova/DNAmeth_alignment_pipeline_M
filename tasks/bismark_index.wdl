@@ -47,7 +47,7 @@ task bismark_index {
     >>>
 
     runtime {
-        docker: select_first([docker_im, "dx://project-GFBQvF80pfpKzXz1FyzF8Zyj:file-GG4GPQQ0pfpBf22y8gzP9Z9k"])
+        docker: select_first([docker_im, "dx://project-GFBQvF80pfpKzXz1FyzF8Zyj:file-GG6B1280pfp6ZxfkJVKKzgF9"])
         cpu: 8
         memory: select_first([actual_mem, 16]) + "GB"
         disks: "local-disk ${disk_space} SSD"
